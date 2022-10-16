@@ -1,14 +1,6 @@
 import model.InputData;
 import model.RateType;
-import service.AmountsCalculationServiceImpl;
-import service.MortgageCalculationService;
-import service.MortgageCalculationServiceImpl;
-import service.PrintingService;
-import service.PrintingServiceImpl;
-import service.RateCalculationService;
-import service.RateCalculationServiceImpl;
-import service.ResidualCalculationServiceImpl;
-import service.TimePointServiceImpl;
+import service.*;
 
 import java.math.BigDecimal;
 
@@ -22,12 +14,15 @@ public class Main {
         RateCalculationService rateCalculationService = new RateCalculationServiceImpl(
                 new TimePointServiceImpl(),
                 new AmountsCalculationServiceImpl(),
-                new ResidualCalculationServiceImpl()
+                new OverpaymentCalculationServiceImpl(),
+                new ResidualCalculationServiceImpl(),
+                new ReferenceCalculationServiceImpl()
         );
 
-        MortgageCalculationService mortgageCalculationService = new MortgageCalculationServiceImpl(
+        MortgageCalculationService mortgageCalculationService = new MortgageCalculationServiceImpl  (
                 printingService,
-                rateCalculationService
+                rateCalculationService,
+                SummaryServiceFactory.create()
         );
 
         mortgageCalculationService.calculate(inputData);

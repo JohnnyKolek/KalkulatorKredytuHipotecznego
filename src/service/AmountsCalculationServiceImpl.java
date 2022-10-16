@@ -1,6 +1,7 @@
 package service;
 
 import model.InputData;
+import model.Overpayment;
 import model.Rate;
 import model.RateAmounts;
 
@@ -12,30 +13,30 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
     private static final BigDecimal YEAR = BigDecimal.valueOf(12);
 
     @Override
-    public RateAmounts calculate(InputData inputData) {
+    public RateAmounts calculate(InputData inputData, Overpayment overpayment) {
         switch (inputData.getRateType()) {
             case CONSTANT:
-                return calculateConstantRate(inputData);
+                return calculateConstantRate(inputData, overpayment);
             case DECREASING:
-                return calculateDecreasingRate(inputData);
+                return calculateDecreasingRate(inputData, overpayment);
             default:
-                throw new RuntimeException("Case not handled");
+                throw new MortgageException();
         }
     }
 
     @Override
-    public RateAmounts calculate(InputData inputData, Rate previousRate) {
+    public RateAmounts calculate(InputData inputData, Overpayment overpayment, Rate previousRate) {
         switch (inputData.getRateType()) {
             case CONSTANT:
-                return calculateConstantRate(inputData, previousRate);
+                return calculateConstantRate(inputData, overpayment, previousRate);
             case DECREASING:
-                return calculateDecreasingRate(inputData, previousRate);
+                return calculateDecreasingRate(inputData, overpayment, previousRate);
             default:
-                throw new RuntimeException("Case not handled");
+                throw new MortgageException();
         }
     }
 
-    private RateAmounts calculateConstantRate(InputData inputData) {
+    private RateAmounts calculateConstantRate(InputData inputData, Overpayment overpayment) {
         BigDecimal interestPercent = inputData.getInterestPercent();
         BigDecimal residualAmount = inputData.getAmount();
 
@@ -45,10 +46,10 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
         BigDecimal interestAmount = calculateInterestAmount(residualAmount, interestPercent);
         BigDecimal capitalAmount = calculateConstantCapitalAmount(rateAmount, interestAmount);
 
-        return new RateAmounts(rateAmount, interestAmount, capitalAmount);
+        return new RateAmounts(rateAmount, interestAmount, capitalAmount, overpayment);
     }
 
-    private RateAmounts calculateConstantRate(InputData inputData, Rate previousRate) {
+    private RateAmounts calculateConstantRate(InputData inputData, Overpayment overpayment, Rate previousRate) {
         BigDecimal interestPercent = inputData.getInterestPercent();
         BigDecimal residualAmount = previousRate.getMortgageResidual().getAmount();
 
@@ -58,10 +59,10 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
         BigDecimal interestAmount = calculateInterestAmount(residualAmount, interestPercent);
         BigDecimal capitalAmount = calculateConstantCapitalAmount(rateAmount, interestAmount);
 
-        return new RateAmounts(rateAmount, interestAmount, capitalAmount);
+        return new RateAmounts(rateAmount, interestAmount, capitalAmount, overpayment);
     }
 
-    private RateAmounts calculateDecreasingRate(InputData inputData) {
+    private RateAmounts calculateDecreasingRate(InputData inputData, Overpayment overpayment) {
         BigDecimal interestPercent = inputData.getInterestPercent();
         BigDecimal residualAmount = inputData.getAmount();
 
@@ -69,10 +70,10 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
         BigDecimal capitalAmount = calculateDecreasingCapitalAmount(residualAmount, inputData.getMonthsDuration());
         BigDecimal rateAmount = capitalAmount.add(interestAmount);
 
-        return new RateAmounts(rateAmount, interestAmount, capitalAmount);
+        return new RateAmounts(rateAmount, interestAmount, capitalAmount, overpayment);
     }
 
-    private RateAmounts calculateDecreasingRate(InputData inputData, Rate previousRate) {
+    private RateAmounts calculateDecreasingRate(InputData inputData, Overpayment overpayment, Rate previousRate) {
         BigDecimal interestPercent = inputData.getInterestPercent();
         BigDecimal residualAmount = previousRate.getMortgageResidual().getAmount();
 
@@ -80,11 +81,11 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
         BigDecimal capitalAmount = calculateDecreasingCapitalAmount(inputData.getAmount(), inputData.getMonthsDuration());
         BigDecimal rateAmount = capitalAmount.add(interestAmount);
 
-        return new RateAmounts(rateAmount, interestAmount, capitalAmount);
+        return new RateAmounts(rateAmount, interestAmount, capitalAmount, overpayment);
     }
 
     private BigDecimal calculateQ(BigDecimal interestPercent) {
-        return interestPercent.divide(YEAR, 10, RoundingMode.HALF_UP).add(BigDecimal.ONE);
+        return interestPercent.divide(YEAR, 50, RoundingMode.HALF_UP).add(BigDecimal.ONE);
     }
 
     private BigDecimal calculateConstantRateAmount(BigDecimal q, BigDecimal amount, BigDecimal monthsDuration) {
@@ -95,7 +96,7 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
     }
 
     private BigDecimal calculateInterestAmount(BigDecimal residualAmount, BigDecimal interestPercent) {
-        return residualAmount.multiply(interestPercent).divide(YEAR, 10, RoundingMode.HALF_UP);
+        return residualAmount.multiply(interestPercent).divide(YEAR, 50, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateConstantCapitalAmount(BigDecimal rateAmount, BigDecimal interestAmount) {
@@ -103,6 +104,6 @@ public class AmountsCalculationServiceImpl implements AmountsCalculationService 
     }
 
     private BigDecimal calculateDecreasingCapitalAmount(BigDecimal amount, BigDecimal monthsDuration) {
-        return amount.divide(monthsDuration,10,RoundingMode.HALF_UP);
+        return amount.divide(monthsDuration,50,RoundingMode.HALF_UP);
     }
 }
